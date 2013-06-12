@@ -1861,6 +1861,7 @@ class DotWindow(gtk.Window):
         <toolbar name="ToolBar">
             <toolitem action="Open"/>
             <toolitem action="Reload"/>
+            <toolitem action="SaveAs"/>
             <toolitem action="Print"/>
             <separator/>
             <toolitem action="ZoomIn"/>
@@ -1904,6 +1905,7 @@ class DotWindow(gtk.Window):
         actiongroup.add_actions((
             ('Open', gtk.STOCK_OPEN, None, None, None, self.on_open),
             ('Reload', gtk.STOCK_REFRESH, None, None, None, self.on_reload),
+            ('SaveAs', gtk.STOCK_SAVE_AS, None, None, None, self.on_saveas),
             ('Print', gtk.STOCK_PRINT, None, None, "Prints the currently visible part of the graph", self.widget.on_print),
             ('ZoomIn', gtk.STOCK_ZOOM_IN, None, None, None, self.widget.on_zoom_in),
             ('ZoomOut', gtk.STOCK_ZOOM_OUT, None, None, None, self.widget.on_zoom_out),
@@ -1998,6 +2000,7 @@ class DotWindow(gtk.Window):
             fp = file(filename, 'rt')
             self.set_dotcode(fp.read(), filename)
             fp.close()
+            self.openedfile = filename
         except IOError as ex:
             dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                                     message_format=str(ex),
@@ -2034,6 +2037,28 @@ class DotWindow(gtk.Window):
     def on_reload(self, action):
         self.widget.reload()
 
+    def on_saveas(self, action):
+        chooser = gtk.FileChooserDialog(title="Save as",
+                                        action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                        buttons=(gtk.STOCK_CANCEL,
+                                                 gtk.RESPONSE_CANCEL,
+                                                 gtk.STOCK_SAVE_AS,
+                                                 gtk.RESPONSE_OK))
+        chooser.set_default_response(gtk.RESPONSE_OK)
+        if chooser.run() == gtk.RESPONSE_OK:
+            filename = chooser.get_filename()
+            chooser.destroy()
+            self.save_as_file(filename)
+        else:
+            chooser.destroy()
+
+    def save_as_file(self, filename):
+        extension = os.path.splitext(filename)[1][1:]
+        if not filter or extension=='dot':
+            shutil.copyfile(self.openedfile, filename)
+        else:
+            command = '{0} {1} -T{2} -o{3}'.format(self.widget.filter, self.openedfile, extension, filename)
+            os.system(command)
 
 class OptionParser(optparse.OptionParser):
 
